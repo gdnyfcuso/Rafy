@@ -54,6 +54,7 @@ namespace Rafy.DbMigration
             if (clrType == typeof(long)) { return DbType.Int64; }
             if (clrType == typeof(bool)) { return DbType.Boolean; }
             if (clrType == typeof(DateTime)) { return DbType.DateTime; }
+            if (clrType == typeof(DateTimeOffset)) { return DbType.DateTimeOffset; }
             if (clrType == typeof(Guid)) { return DbType.Guid; }
             if (clrType == typeof(double)) { return DbType.Double; }
             if (clrType == typeof(byte)) { return DbType.Byte; }
@@ -73,6 +74,28 @@ namespace Rafy.DbMigration
             }
 
             return DbType.String;
+        }
+
+        /// <summary>
+        /// 将指定的值转换为一个兼容数据库类型的值。
+        /// 该值可用于与下层的 ADO.NET 交互。
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public virtual object ToDbParameterValue(object value)
+        {
+            return value ?? DBNull.Value;
+        }
+
+        /// <summary>
+        /// 将指定的值转换为一个 CLR 类型的值。
+        /// </summary>
+        /// <param name="dbValue">The database value.</param>
+        /// <param name="clrType">Type of the color.</param>
+        /// <returns></returns>
+        public virtual object ToClrValue(object dbValue, Type clrType)
+        {
+            return dbValue == DBNull.Value ? null : dbValue;
         }
 
         /// <summary>
@@ -124,7 +147,7 @@ namespace Rafy.DbMigration
         /// <param name="oldColumnType"></param>
         /// <param name="newColumnType"></param>
         /// <returns></returns>
-        internal static bool IsCompatible(DbType oldColumnType, DbType newColumnType)
+        internal virtual bool IsCompatible(DbType oldColumnType, DbType newColumnType)
         {
             if (oldColumnType == newColumnType) return true;
 
@@ -144,6 +167,7 @@ namespace Rafy.DbMigration
         private static DbType[][] CompatibleTypes = new DbType[][]{
             new DbType[]{ DbType.String, DbType.AnsiString, DbType.Xml },
             new DbType[]{ DbType.Int64, DbType.Double, DbType.Decimal },
+            new DbType[]{ DbType.Date, DbType.Time, DbType.DateTime, DbType.DateTimeOffset },
         };
     }
 }

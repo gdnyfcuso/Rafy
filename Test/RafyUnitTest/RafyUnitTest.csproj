@@ -88,13 +88,14 @@
     <Compile Include="Rafy\MiscellaneousTest.cs" />
     <Compile Include="Rafy\ODataTest.cs" />
     <Compile Include="Rafy\Plugins\AccountsPluginTest.cs" />
-    <Compile Include="Rafy\Plugins\DataTableMigrationPluginTest.cs" />
+    <Compile Include="Rafy\Plugins\DataArchiverTest.cs" />
     <Compile Include="Rafy\Plugins\FileStoragePluginTest.cs" />
     <Compile Include="Rafy\Plugins\LicenseManagerPluginTest.cs" />
     <Compile Include="Rafy\Plugins\RBAC\GroupPluginTest.cs" />
     <Compile Include="Rafy\Plugins\RBAC\RBACManagementPluginTest.cs" />
     <Compile Include="Rafy\Plugins\RBAC\UserRoleManagementPluginTest.cs" />
     <Compile Include="Rafy\Plugins\SerialNumberPluginTest.cs" />
+    <Compile Include="Rafy\Plugins\SystemSettingsPluginTest.cs" />
     <Compile Include="Rafy\StampTest.cs" />
     <Compile Include="ServerTestHelper.cs" />
     <Compile Include="Rafy\DomainTest.cs" />
@@ -127,9 +128,9 @@
       <Project>{4d6467e4-d1ce-4fa8-a1fe-92b1ba549a4a}</Project>
       <Name>Rafy.Accounts</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\Rafy\Plugins\Rafy.DataTableMigration\Rafy.DataTableMigration.csproj">
+    <ProjectReference Include="..\..\Rafy\Plugins\Rafy.DataTableMigration\Rafy.DataArchiver.csproj">
       <Project>{95cb6f76-3d35-4f2e-bf2a-a45ec41c76b4}</Project>
-      <Name>Rafy.DataTableMigration</Name>
+      <Name>Rafy.DataArchiver</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\Rafy\Plugins\Rafy.Domain.EntityPhantom\Rafy.Domain.EntityPhantom.csproj">
       <Project>{0b6df92b-0248-422d-a9c2-1604d4cb7bc9}</Project>
@@ -170,6 +171,10 @@
     <ProjectReference Include="..\..\Rafy\Plugins\Rafy.SerialNumber\Rafy.SerialNumber.csproj">
       <Project>{9ff37989-33e7-4d67-8e81-0a443eaee510}</Project>
       <Name>Rafy.SerialNumber</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Rafy\Plugins\Rafy.SystemSettings\Rafy.SystemSettings.csproj">
+      <Project>{1c9c3546-f650-40a3-aa7f-64e8a230a02b}</Project>
+      <Name>Rafy.SystemSettings</Name>
     </ProjectReference>
     <ProjectReference Include="..\Rafy.UnitTest.DataProvider\Rafy.UnitTest.DataProvider.csproj">
       <Project>{df5e92a5-b32f-41ae-b880-14069d4fe7f4}</Project>

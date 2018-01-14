@@ -20,12 +20,22 @@ using System.Threading.Tasks;
 
 namespace Rafy.DbMigration.SqlServer
 {
+    /// <summary>
+    /// SqlServer 数据库字段类型的转换器。
+    /// </summary>
     public class SqlServerDbTypeConverter : DbTypeConverter
     {
         public static readonly SqlServerDbTypeConverter Instance = new SqlServerDbTypeConverter();
 
         protected SqlServerDbTypeConverter() { }
 
+        /// <summary>
+        /// 将 DbType 转换为数据库中的列的类型名称。
+        /// </summary>
+        /// <param name="fieldType"></param>
+        /// <param name="length"></param>
+        /// <returns></returns>
+        /// <exception cref="NotSupportedException"></exception>
         public override string ConvertToDatabaseTypeName(DbType fieldType, string length = null)
         {
             switch (fieldType)
@@ -38,8 +48,12 @@ namespace Rafy.DbMigration.SqlServer
                     return "INT";
                 case DbType.Int64:
                     return "BIGINT";
+                case DbType.Date:
+                case DbType.Time:
                 case DbType.DateTime:
                     return "DATETIME";
+                case DbType.DateTimeOffset:
+                    return "DATETIMEOFFSET";
                 case DbType.Guid:
                     return "UNIQUEIDENTIFIER";
                 case DbType.Double:
@@ -65,6 +79,12 @@ namespace Rafy.DbMigration.SqlServer
             throw new NotSupportedException(string.Format("不支持生成列类型：{0}。", fieldType));
         }
 
+        /// <summary>
+        /// 将从数据库 Schema Meta 中读取出来的列的类型名称，转换为其对应的 DbType。
+        /// </summary>
+        /// <param name="databaseTypeName">从数据库 Schema Meta 中读取出来的列的类型名称。</param>
+        /// <returns></returns>
+        /// <exception cref="NotSupportedException"></exception>
         public override DbType ConvertToDbType(string databaseTypeName)
         {
             switch (databaseTypeName.ToLower())
@@ -102,12 +122,43 @@ namespace Rafy.DbMigration.SqlServer
                     return DbType.Byte;
                 case "date":
                 case "datetime":
-                case "datetimeoffset":
                 case "time":
                     return DbType.DateTime;
+                case "datetimeoffset":
+                    return DbType.DateTimeOffset;
                 default:
                     throw new NotSupportedException($"不支持读取数据库中的列类型：{databaseTypeName}。");
             }
         }
+
+        /// <summary>
+        /// 由于不同的 DbType 映射到库中后的类型可能是相同的，所以这里需要对类型进行兼容性判断。
+        /// </summary>
+        /// <param name="oldColumnType"></param>
+        /// <param name="newColumnType"></param>
+        /// <returns></returns>
+        internal override bool IsCompatible(DbType oldColumnType, DbType newColumnType)
+        {
+            if (oldColumnType == newColumnType) return true;
+
+            for (int i = 0, c = CompatibleTypes.Length; i < c; i++)
+            {
+                var sameTypes = CompatibleTypes[i];
+                if (sameTypes.Contains(oldColumnType) && sameTypes.Contains(newColumnType))
+                {
+                    return true;
+                }
+            }
+
+            return base.IsCompatible(oldColumnType, newColumnType);
+        }
+
+        /// <summary>
+        /// SqlServer DataType
+        /// https://technet.microsoft.com/zh-cn/library/microsoft.sqlserver.dac.model.sqldatatype(v=sql.120).aspx
+        /// </summary>
+        private static DbType[][] CompatibleTypes = new DbType[][]{
+            new DbType[]{ DbType.DateTime2, DbType.DateTimeOffset }
+        };
     }
 }

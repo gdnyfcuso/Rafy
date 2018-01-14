@@ -35,9 +35,10 @@ using Rafy.RBAC.GroupManagement;
 using Rafy.FileStorage;
 using Rafy.SerialNumber;
 using Rafy.Accounts;
-using Rafy.DataTableMigration;
+using Rafy.DataArchiver;
 using Rafy.RBAC.DataPermissionManagement;
 using Rafy.RBAC.UserRoleManagement;
+using Rafy.SystemSettings;
 
 namespace RafyUnitTest
 {
@@ -68,6 +69,7 @@ namespace RafyUnitTest
             RafyEnvironment.DomainPlugins.Add(new DCPlugin());
 
             RafyEnvironment.DomainPlugins.Add(new AccountsPlugin());
+            RafyEnvironment.DomainPlugins.Add(new SystemSettingsPlugin());
             RafyEnvironment.DomainPlugins.Add(new SerialNumberPlugin());
             RafyEnvironment.DomainPlugins.Add(new FileStoragePlugin());
 
@@ -75,14 +77,12 @@ namespace RafyUnitTest
             RafyEnvironment.DomainPlugins.Add(new GroupManagementPlugin());
             RafyEnvironment.DomainPlugins.Add(new UserRoleManagementPlugin());
             RafyEnvironment.DomainPlugins.Add(new DataPermissionManagementPlugin());
-            RafyEnvironment.DomainPlugins.Add(new DataTableMigrationPlugin());
 
             ////为了多次修改 Location 值，需要把修改值的操作放到 InitEnvironment 中。
             //RafyEnvironment.Location.IsWebUI = false;
             //RafyEnvironment.Location.IsWPFUI = false;
             //RafyEnvironment.Location.DataPortalMode = DataPortalMode.ConnectDirectly;
-            DataTableMigrationPlugin.DbSettingName = UnitTestEntityRepositoryDataProvider.DbSettingName;
-            DataTableMigrationPlugin.BackUpDbSettingName = UnitTestEntityRepositoryDataProvider.DbSettingName_Duplicate;
+
             base.InitEnvironment();
         }
 

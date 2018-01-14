@@ -1387,7 +1387,7 @@ namespace RafyUnitTest
             var repo = RF.ResolveInstance<FavorateRepository>();
             using (RF.TransactionScope(repo))
             {
-                var book1 = new Book { Name = "Book1", };
+                var book1 = new Book { Name = "Book1" };
                 RF.Save(book1);
                 var book2 = new Book { Name = "Book2" };
                 RF.Save(book2);
@@ -1396,9 +1396,9 @@ namespace RafyUnitTest
                 repo.Save(new Favorate { Name = "f3" });
 
                 var list = repo.GetByBookNameNotOrNull(book1.Name);
-                Assert.IsTrue(list.Count == 2);
-                Assert.IsTrue(list[0].Name == "f2");
-                Assert.IsTrue(list[1].Name == "f3");
+                Assert.AreEqual(2, list.Count);
+                Assert.AreEqual("f2", list[0].Name);
+                Assert.AreEqual("f3", list[1].Name);
             }
         }
 
@@ -1676,6 +1676,48 @@ namespace RafyUnitTest
 
                 var list = repo.LinqGetByNameStringAction(StringAction.EndsWith, "3");
                 Assert.IsTrue(list.Count == 1);
+            }
+        }
+
+        [TestMethod]
+        public void ORM_LinqQuery_Object_Equals()
+        {
+            var repo = RF.ResolveInstance<ChapterRepository>();
+            using (RF.TransactionScope(repo))
+            {
+                RF.Save(new Book
+                {
+                    Name = "1",
+                    ChapterList =
+                    {
+                        new Chapter { Name = "1.0"},
+                        new Chapter { Name = "1.1"},
+                    }
+                });
+
+                var list = repo.LinqGetByNameStringAction(StringAction.ObjectEquals, "1.0");
+                Assert.AreEqual(1, list.Count);
+            }
+        }
+
+        [TestMethod]
+        public void ORM_LinqQuery_Object_Equals_Reverse()
+        {
+            var repo = RF.ResolveInstance<ChapterRepository>();
+            using (RF.TransactionScope(repo))
+            {
+                RF.Save(new Book
+                {
+                    Name = "1",
+                    ChapterList =
+                    {
+                        new Chapter { Name = "1.0"},
+                        new Chapter { Name = "1.1"},
+                    }
+                });
+
+                var list = repo.LinqGetByNameStringAction(StringAction.ObjectEquals_Reverse, "1.0");
+                Assert.AreEqual(1, list.Count);
             }
         }
 
@@ -4749,7 +4791,7 @@ FROM Book");
             var repo = RepositoryFacade.ResolveInstance<BookRepository>();
             using (RF.TransactionScope(repo))
             {
-                var book=new Book();
+                var book = new Book();
                 repo.Save(book);
                 if (!ids.Contains(book.Id))
                 {
@@ -5348,7 +5390,9 @@ ORDER BY Article.Code ASC");
                 var db = context.DatabaseMetaReader.Read();
                 var table = db.FindTable("Customer");
                 var c1 = table.FindColumn("DecimalProperty1");
-                Assert.IsTrue(DbTypeConverter.IsCompatible(c1.DataType, DbType.Decimal));
+                var dbProvider = DbMigrationProviderFactory.GetProvider(context.DbSetting);
+                var dbTypeCoverter = (dbProvider.CreateRunGenerator() as SqlRunGenerator).DbTypeCoverter;
+                Assert.IsTrue(dbTypeCoverter.IsCompatible(c1.DbType, DbType.Decimal));
             }
         }
 
@@ -5360,7 +5404,9 @@ ORDER BY Article.Code ASC");
                 var db = context.DatabaseMetaReader.Read();
                 var table = db.FindTable("Customer");
                 var c1 = table.FindColumn("DecimalProperty2");
-                Assert.IsTrue(DbTypeConverter.IsCompatible(c1.DataType, DbType.Decimal));
+                var dbProvider = DbMigrationProviderFactory.GetProvider(context.DbSetting);
+                var dbTypeCoverter = (dbProvider.CreateRunGenerator() as SqlRunGenerator).DbTypeCoverter;
+                Assert.IsTrue(dbTypeCoverter.IsCompatible(c1.DbType, DbType.Decimal));
                 //Assert.IsTrue(c1.Length == "18,4");
             }
         }
@@ -5373,7 +5419,9 @@ ORDER BY Article.Code ASC");
                 var db = context.DatabaseMetaReader.Read();
                 var table = db.FindTable("Customer");
                 var c1 = table.FindColumn("DecimalProperty3");
-                Assert.IsTrue(DbTypeConverter.IsCompatible(c1.DataType, DbType.Double));
+                var dbProvider = DbMigrationProviderFactory.GetProvider(context.DbSetting);
+                var dbTypeCoverter = (dbProvider.CreateRunGenerator() as SqlRunGenerator).DbTypeCoverter;
+                Assert.IsTrue(dbTypeCoverter.IsCompatible(c1.DbType, DbType.Double));
             }
         }
 

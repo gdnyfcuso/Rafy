@@ -221,7 +221,7 @@ namespace Rafy.DbMigration
 
             var dbMeta = this.DatabaseMetaReader.Read();
 
-            var differ = new ModelDiffer();
+            var differ = new ModelDiffer((_runGenerator as SqlRunGenerator).DbTypeCoverter);
             differ.IDbIdentifierProvider = (_runGenerator as SqlRunGenerator).IdentifierQuoter;
             var changeSet = differ.Distinguish(dbMeta, destination);
 
@@ -375,7 +375,7 @@ namespace Rafy.DbMigration
                 {
                     if (!string.IsNullOrWhiteSpace(column.Comment))
                     {
-                        operations.Add(new UpdateComment { TableName = table.Name, ColumnName = column.Name, ColumnDataType = column.DataType, Comment = column.Comment });
+                        operations.Add(new UpdateComment { TableName = table.Name, ColumnName = column.Name, ColumnDbType = column.DbType, Comment = column.Comment });
                     }
                 }
             }

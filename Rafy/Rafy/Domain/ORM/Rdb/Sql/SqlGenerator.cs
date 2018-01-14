@@ -80,7 +80,7 @@ namespace Rafy.Domain.ORM
         }
 
         /// <summary>
-        /// In 语句中可以承受的最大的个数。
+        /// 单个 In 条件语句中可以承受的最大的项的个数。
         /// 
         /// 这个数表示各个不同类型的数据库中能接受的个数的最小值。
         /// 
@@ -313,7 +313,7 @@ namespace Rafy.Domain.ORM
             var op = node.Operator;
             var value = node.Value;
 
-            value = this.PrepareConstraintValue(value);
+            value = this.DbTypeCoverter.ToDbParameterValue(value);
 
             #region 处理一些特殊的值
 
@@ -376,6 +376,7 @@ namespace Rafy.Domain.ORM
 
             #endregion
 
+            var column = node.Column;
             this.AppendColumnUsage(node.Column);
 
             //根据不同的操作符，来生成不同的_sql。
@@ -389,7 +390,7 @@ namespace Rafy.Domain.ORM
                     else
                     {
                         _sql.Append(" = ");
-                        _sql.AppendParameter(value);
+                        this.AppendParameter(value, column);
                     }
                     break;
                 case SqlColumnConstraintOperator.NotEqual:
@@ -400,61 +401,61 @@ namespace Rafy.Domain.ORM
                     else
                     {
                         _sql.Append(" != ");
-                        _sql.AppendParameter(value);
+                        this.AppendParameter(value, column);
                     }
                     break;
                 case SqlColumnConstraintOperator.Greater:
                     _sql.Append(" > ");
-                    _sql.AppendParameter(value);
+                    this.AppendParameter(value, column);
                     break;
                 case SqlColumnConstraintOperator.GreaterEqual:
                     _sql.Append(" >= ");
-                    _sql.AppendParameter(value);
+                    this.AppendParameter(value, column);
                     break;
                 case SqlColumnConstraintOperator.Less:
                     _sql.Append(" < ");
-                    _sql.AppendParameter(value);
+                    this.AppendParameter(value, column);
                     break;
                 case SqlColumnConstraintOperator.LessEqual:
                     _sql.Append(" <= ");
-                    _sql.AppendParameter(value);
+                    this.AppendParameter(value, column);
                     break;
                 case SqlColumnConstraintOperator.Like:
                     _sql.Append(" LIKE ");
-                    _sql.AppendParameter(value);
+                    this.AppendParameter(value, column);
                     break;
                 case SqlColumnConstraintOperator.NotLike:
                     _sql.Append(" NOT LIKE ");
-                    _sql.AppendParameter(value);
+                    this.AppendParameter(value, column);
                     break;
                 case SqlColumnConstraintOperator.Contains:
                     _sql.Append(" LIKE ");
-                    _sql.AppendParameter(WILDCARD_ALL + this.Escape(value) + WILDCARD_ALL);
+                    this.AppendParameter(WILDCARD_ALL + this.Escape(value) + WILDCARD_ALL, column);
                     this.AppendEscapePlause(value);
                     break;
                 case SqlColumnConstraintOperator.NotContains:
                     _sql.Append(" NOT LIKE ");
-                    _sql.AppendParameter(WILDCARD_ALL + this.Escape(value) + WILDCARD_ALL);
+                    this.AppendParameter(WILDCARD_ALL + this.Escape(value) + WILDCARD_ALL, column);
                     this.AppendEscapePlause(value);
                     break;
                 case SqlColumnConstraintOperator.StartsWith:
                     _sql.Append(" LIKE ");
-                    _sql.AppendParameter(this.Escape(value) + WILDCARD_ALL);
+                    this.AppendParameter(this.Escape(value) + WILDCARD_ALL, column);
                     this.AppendEscapePlause(value);
                     break;
                 case SqlColumnConstraintOperator.NotStartsWith:
                     _sql.Append(" NOT LIKE ");
-                    _sql.AppendParameter(this.Escape(value) + WILDCARD_ALL);
+                    this.AppendParameter(this.Escape(value) + WILDCARD_ALL, column);
                     this.AppendEscapePlause(value);
                     break;
                 case SqlColumnConstraintOperator.EndsWith:
                     _sql.Append(" LIKE ");
-                    _sql.AppendParameter(WILDCARD_ALL + this.Escape(value));
+                    this.AppendParameter(WILDCARD_ALL + this.Escape(value), column);
                     this.AppendEscapePlause(value);
                     break;
                 case SqlColumnConstraintOperator.NotEndsWith:
                     _sql.Append(" NOT LIKE ");
-                    _sql.AppendParameter(WILDCARD_ALL + this.Escape(value));
+                    this.AppendParameter(WILDCARD_ALL + this.Escape(value), column);
                     this.AppendEscapePlause(value);
                     break;
                 case SqlColumnConstraintOperator.In:
@@ -507,6 +508,17 @@ namespace Rafy.Domain.ORM
             return node;
         }
 
+        private void AppendParameter(object value, SqlColumn column)
+        {
+            //如果只传入参数的值，那么 DbDataParameter 中是没有设置 DbType 的，这会造成索引无效。
+            if (column.HasIndex)
+            {
+                value = new DbAccesserParameter(value, column.DbType);
+            }
+
+            _sql.AppendParameter(value);
+        }
+
         /// <summary>
         /// in 和 not in 没用参数化 所以要转义特殊字符 
         /// </summary>
@@ -538,11 +550,6 @@ namespace Rafy.Domain.ORM
             {
                 _sql.Append(" ESCAPE '").Append(ESCAPE_CHAR).Append('\'');
             }
-        }
-
-        public virtual object PrepareConstraintValue(object value)
-        {
-            return value ?? DBNull.Value;
         }
 
         protected override SqlSelectAll VisitSqlSelectAll(SqlSelectAll sqlSelectStar)

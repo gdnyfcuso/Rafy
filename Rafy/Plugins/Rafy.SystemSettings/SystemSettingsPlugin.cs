@@ -1,23 +1,33 @@
 ﻿/*******************************************************
  * 
- * 作者：吴中坡
- * 创建日期：20170315
+ * 作者：胡庆访
+ * 创建日期：20171104
  * 说明：此文件只包含一个类，具体内容见类型注释。
  * 运行环境：.NET 4.0
  * 版本号：1.0.0
  * 
  * 历史记录：
- * 创建文件 吴中坡 20170315 13:47
+ * 创建文件 胡庆访 20171104 15:25
  * 
 *******************************************************/
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using Rafy;
 using Rafy.ComponentModel;
+using Rafy.DbMigration;
 using Rafy.Domain;
+using Rafy.Domain.ORM.DbMigration;
 
-namespace Rafy.DataTableMigration
+namespace Rafy.SystemSettings
 {
-    public class DataTableMigrationPlugin : DomainPlugin
+    /// <summary>
+    /// 系统设置插件。
+    /// 本插件中包含一些 IT 系统内常用的 “系统设置” 模块中的领域模型。如：全局配置（<see cref="GlobalSetting"/>）。
+    /// </summary>
+    public class SystemSettingsPlugin : DomainPlugin
     {
         private static string _dbSettingName;
         /// <summary>
@@ -30,23 +40,8 @@ namespace Rafy.DataTableMigration
             set { _dbSettingName = value; }
         }
 
-        /// <summary>
-        /// 备份的连接字符串的配置名
-        /// </summary>
-        public static string BackUpDbSettingName
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// 插件在 Initialize 时调用。
-        /// </summary>
-        public EventHandler OnInitialize { get; set; }
-
         public override void Initialize(IApp app)
         {
-            OnInitialize?.Invoke(this, new EventArgs());
         }
     }
 }

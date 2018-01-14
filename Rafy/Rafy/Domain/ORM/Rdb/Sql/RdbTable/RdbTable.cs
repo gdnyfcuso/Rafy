@@ -71,12 +71,28 @@ namespace Rafy.Domain.ORM
             get { return _repository; }
         }
 
-        internal IDbIdentifierQuoter IdentifierProvider;
+        /// <summary>
+        /// Gets or sets the identifier provider.
+        /// </summary>
+        /// <value>
+        /// The identifier provider.
+        /// </value>
+        public IDbIdentifierQuoter IdentifierProvider { get; internal set; }
+
+        /// <summary>
+        /// Gets or sets the database type converter.
+        /// </summary>
+        /// <value>
+        /// The database type converter.
+        /// </value>
+        public DbTypeConverter DbTypeConverter { get; internal set; }
 
         internal virtual RdbColumn CreateColumn(IPersistanceColumnInfo columnInfo)
         {
             return new RdbColumn(this, columnInfo);
         }
+
+        public abstract SqlGenerator CreateSqlGenerator();
 
         #region 属性 及 元数据
 
@@ -239,7 +255,7 @@ namespace Rafy.Domain.ORM
                 var column = _columns[i];
                 if (column.ShouldInsert(withIdentity))
                 {
-                    var value = column.ReadParameterValue(item);
+                    var value = column.ReadDbParameterValue(item);
                     parameters.Add(value);
                 }
             }
@@ -328,7 +344,7 @@ namespace Rafy.Domain.ORM
                 var column = _columns[i];
                 if (!column.Info.IsPrimaryKey && !column.IsLOB)
                 {
-                    var value = column.ReadParameterValue(item);
+                    var value = column.ReadDbParameterValue(item);
                     parameters.Add(value);
                 }
             }
@@ -341,7 +357,7 @@ namespace Rafy.Domain.ORM
                     var column = lobColumns[i];
                     if (!column.Info.IsPrimaryKey)
                     {
-                        var value = column.ReadParameterValue(item);
+                        var value = column.ReadDbParameterValue(item);
                         parameters.Add(value);
                     }
                 }
@@ -672,10 +688,10 @@ namespace Rafy.Domain.ORM
                 pagingInfo = null;
             }
 
-            var readByIndex = readType == ReadDataType.ByIndex;
+            var entityReader = CreateEntityReader(readType);
             Action<IDataReader> rowReader = dr =>
             {
-                var entity = readByIndex ? this.CreateByIndex(dr) : this.CreateByName(dr);
+                var entity = entityReader.Read(dr);
                 list.Add(entity);
             };
             if (fetchingFirst)
@@ -724,68 +740,95 @@ namespace Rafy.Domain.ORM
 
         private IEnumerable<Entity> ReadToEntity(IDataReader reader, ReadDataType readType)
         {
-            var readByIndex = readType == ReadDataType.ByIndex;
+            var entityReader = this.CreateEntityReader(readType);
 
-            //最后一次添加的节点。
             while (reader.Read())
             {
-                var entity = readByIndex ? this.CreateByIndex(reader) : this.CreateByName(reader);
+                var entity = entityReader.Read(reader);
                 yield return entity;
             }
         }
 
-        /// <summary>
-        /// 把某一行翻译成一个实体对象
-        /// </summary>
-        /// <param name="reader"></param>
-        /// <returns></returns>
-        private Entity CreateByIndex(IDataReader reader)
+        #region EntityReader
+
+        private EntityReader _createByIndexReader;
+
+        private EntityReader CreateEntityReader(ReadDataType readType)
         {
-            int i = 0;
-            return this.CreateByIndex(reader, ref i);
+            if (_createByIndexReader == null)
+            {
+                _createByIndexReader = new CreateByIndexReader { _owner = this };
+            }
+
+            return readType == ReadDataType.ByIndex ?
+                _createByIndexReader ://可以缓存。
+                new CreateByNameReader { _owner = this };//CreateByNameReader 由于每个 SQL 的列的顺序不一定一致，所以不能进行缓存。
         }
 
-        private Entity CreateByIndex(IDataReader reader, ref int indexFrom)
+        private abstract class EntityReader
         {
-            var entity = this.CreateEntity();
+            internal RdbTable _owner;
 
-            foreach (var column in this._columns)
+            public Entity Read(IDataReader reader)
             {
-                if (!column.IsLOB)
+                var entity = Entity.New(_owner._meta.EntityType);
+
+                this.ReadProperties(entity, reader, _owner._columns);
+
+                entity = _owner.TryReplaceByContext(entity) as Entity;
+
+                entity.PersistenceStatus = PersistenceStatus.Unchanged;
+
+                return entity;
+            }
+
+            protected abstract void ReadProperties(Entity entity, IDataReader reader, IList<RdbColumn> columns);
+        }
+
+        private class CreateByIndexReader : EntityReader
+        {
+            protected override void ReadProperties(Entity entity, IDataReader reader, IList<RdbColumn> columns)
+            {
+                var index = 0;
+                for (int i = 0, c = columns.Count; i < c; i++)
                 {
-                    object val = reader.GetValue(indexFrom++);
-                    column.LoadValue(entity, val);
+                    var column = columns[i];
+                    if (!column.IsLOB)
+                    {
+                        object val = reader.GetValue(index++);
+                        column.WritePropertyValue(entity, val);
+                    }
                 }
             }
-
-            entity = this.TryReplaceByContext(entity) as Entity;
-
-            return entity;
         }
 
-        private Entity CreateByName(IDataReader reader)
+        private class CreateByNameReader : EntityReader
         {
-            var entity = this.CreateEntity();
+            private int[] _columnIndeces;
 
-            foreach (var column in _columns)
+            protected override void ReadProperties(Entity entity, IDataReader reader, IList<RdbColumn> columns)
             {
-                object val = reader[column.Name];
-                column.LoadValue(entity, val);
+                if (_columnIndeces == null)
+                {
+                    //先初始化对应的索引号。
+                    _columnIndeces = new int[columns.Count];
+                    for (int i = 0, c = columns.Count; i < c; i++)
+                    {
+                        var column = columns[i];
+                        _columnIndeces[i] = reader.GetOrdinal(column.Name);
+                    }
+                }
+
+                for (int i = 0, c = columns.Count; i < c; i++)
+                {
+                    var column = columns[i];
+                    object val = reader[_columnIndeces[i]];
+                    column.WritePropertyValue(entity, val);
+                }
             }
-
-            entity = this.TryReplaceByContext(entity) as Entity;
-
-            return entity;
         }
 
-        private Entity CreateEntity()
-        {
-            var entity = Entity.New(this._meta.EntityType);
-
-            entity.PersistenceStatus = PersistenceStatus.Unchanged;
-
-            return entity;
-        }
+        #endregion
 
         //需要同时加载引用实体的数据时，参考以下方法。
         ///// <summary>
@@ -1048,8 +1091,6 @@ namespace Rafy.Domain.ORM
         }
 
         #endregion
-
-        public abstract SqlGenerator CreateSqlGenerator();
 
         protected enum ReadDataType { ByIndex, ByName }
     }
